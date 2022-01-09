@@ -16,7 +16,8 @@ app = Flask(__name__)
 # set verified origin of client
 app.config['TARGET_ORIGIN'] = '*'
 
-@app.route('/')
+@app.route('/', methods=['GET'])
+@cross_origin(origin='*')
 def index():
     return "<p>Server is up and running</p>"
 
@@ -45,7 +46,15 @@ def lof_test():
         # local outlier factor
         lof = LocalOutlierFactor()
         inputs = normal.values[0].reshape(-1, 1)
+
+        # start timer
+        start = time.time()
+
+        # predict
         prediction = lof.fit_predict(inputs)
+
+        # stop timer
+        end = time.time()
 
         # attach prediction result
         if -1 not in prediction:
@@ -69,4 +78,4 @@ def lof_test():
                     inlierId.append(x)
         
         # return results
-        return { "prediction": prediction_result, "inlier": inlier, "outlier": outlier, "inlierId": inlierId, "outlierId": outlierId }, 200
+        return { "prediction": prediction_result, "inlier": inlier, "outlier": outlier, "inlierId": inlierId, "outlierId": outlierId, "trainingTime": end-start }, 200
