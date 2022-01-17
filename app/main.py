@@ -33,58 +33,64 @@ def lof_train_from_file():
         if fileFormat != 'csv':
             return { 'message': 'Invalid File Format' }, 400
         else:
-            filename = secure_filename(f.filename)
-            f.save(filename)
-            
-            combined = pd.read_csv(filename)
-
-            # local outlier factor
-            lof = LocalOutlierFactor()
-
-            x = combined.drop(['Target'], axis=1)
-            y = combined['Target']
-
-            # initialize variables to return
-            predictions = []
-
-            for i in range(len(x)):
-                inputs = x.values[i].reshape(-1, 1)
-                prediction = lof.fit_predict(inputs)
-                if -1 not in prediction:
-                    predictions.append('Normal')
-                else:
-                    predictions.append('Abnormal')
-            
-            n = 0
-            a = 0
-            na = 0
-            an = 0
-            score = 0
-
-            for i, j in zip(y, predictions):
-                # get accuracy
-                if i==j:
-                    score+=1
+            try:
+                filename = secure_filename(f.filename)
+                f.save(filename)
                 
-                # get confusion matrix
-                if i==j and i=='Normal':
-                    n+=1
-                elif i==j and i=='Abnormal':
-                    a+=1
-                elif i!=j and i=='Normal':
-                    na+=1
-                elif i!=j and i=='Abnormal':
-                    an+=1
-            
-            accuracy = str((score/len(x))*100)
+                combined = pd.read_csv(filename)
 
-            print('Accuracy: ' + accuracy)
-            print('Classified Normal as Normal: '+str(n))
-            print('Classified Abnormal as Abnormal: '+str(a))
-            print('Classified Normal as Abnormal: '+str(na))
-            print('Classified Abnormal as Normal: '+str(an))
+                # local outlier factor
+                lof = LocalOutlierFactor()
 
-            return { "accuracy": accuracy, "true_normal": n, "true_abnormal": a, "false_normal": an, "false_abnormal": na }
+                x = combined.drop(['Target'], axis=1)
+                y = combined['Target']
+
+                # initialize variables to return
+                predictions = []
+
+                try:
+                    for i in range(len(x)):
+                        inputs = x.values[i].reshape(-1, 1)
+                        prediction = lof.fit_predict(inputs)
+                        if -1 not in prediction:
+                            predictions.append('Normal')
+                        else:
+                            predictions.append('Abnormal')
+                except:
+                    return { "message": "Your dataset contains null or invalid values" }, 400
+                
+                n = 0
+                a = 0
+                na = 0
+                an = 0
+                score = 0
+
+                for i, j in zip(y, predictions):
+                    # get accuracy
+                    if i==j:
+                        score+=1
+                    
+                    # get confusion matrix
+                    if i==j and i=='Normal':
+                        n+=1
+                    elif i==j and i=='Abnormal':
+                        a+=1
+                    elif i!=j and i=='Normal':
+                        na+=1
+                    elif i!=j and i=='Abnormal':
+                        an+=1
+                
+                accuracy = str((score/len(x))*100)
+
+                print('Accuracy: ' + accuracy)
+                print('Classified Normal as Normal: '+str(n))
+                print('Classified Abnormal as Abnormal: '+str(a))
+                print('Classified Normal as Abnormal: '+str(na))
+                print('Classified Abnormal as Normal: '+str(an))
+
+                return { "accuracy": accuracy, "true_normal": n, "true_abnormal": a, "false_normal": an, "false_abnormal": na }, 200
+            except:
+                return { "message": 'An Unknown Error Occurred' }, 400
 
 @app.route('/lof_train', methods=['POST'])
 @cross_origin(origin=app.config['TARGET_ORIGIN'], headers=['Content-Type'])
@@ -146,7 +152,7 @@ def lof_train():
         print('Classified Normal as Abnormal: '+str(na))
         print('Classified Abnormal as Normal: '+str(an))
 
-        return { "accuracy": accuracy, "true_normal": n, "true_abnormal": a, "false_normal": an, "false_abnormal": na }
+        return { "accuracy": accuracy, "true_normal": n, "true_abnormal": a, "false_normal": an, "false_abnormal": na }, 200
 
 
 @app.route('/lof_test', methods=['POST'])
