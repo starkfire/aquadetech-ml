@@ -10,10 +10,21 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, plot_confusion_matrix
 from sklearn.model_selection import train_test_split
-
 from werkzeug.utils import secure_filename
+import pickle
 
 app = Flask(__name__)
+
+# load an existing model or .pkl file
+def load_model(filename):
+    with open(filename, 'rb') as f:
+        clf = pickle.load(f)
+    return clf
+
+# write an object to a .pkl file
+def save_model(clf, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(clf, f)
 
 # set verified origin of client
 app.config['TARGET_ORIGIN'] = '*'
@@ -39,8 +50,8 @@ def lof_train_from_file():
                 
                 combined = pd.read_csv(filename)
 
-                # local outlier factor
-                lof = LocalOutlierFactor()
+                # load existing model
+                lof = load_model('LOF.pkl')
 
                 x = combined.drop(['Target'], axis=1)
                 y = combined['Target']
@@ -52,6 +63,10 @@ def lof_train_from_file():
                     for i in range(len(x)):
                         inputs = x.values[i].reshape(-1, 1)
                         prediction = lof.fit_predict(inputs)
+
+                        # update existing model
+                        save_model(lof, 'LOF.pkl')
+
                         if -1 not in prediction:
                             predictions.append('Normal')
                         else:
@@ -106,23 +121,29 @@ def lof_train():
         # transform received data to a DataFrame
         combined = pd.DataFrame(data, columns=columns)
 
-        # local outlier factor
-        lof = LocalOutlierFactor()
-
         x = combined.drop(['Target'], axis=1)
         y = combined['Target']
 
         # initialize variables to return
         predictions = []
 
+        # import the existing model
+        lof = load_model('LOF.pkl')
+
         for i in range(len(x)):
             inputs = x.values[i].reshape(-1, 1)
             prediction = lof.fit_predict(inputs)
+            
+            # update the existing model
+            save_model(lof, 'LOF.pkl')
+
+            # gather predictions
             if -1 not in prediction:
                 predictions.append('Normal')
             else:
                 predictions.append('Abnormal')
         
+        # metrics/results
         n = 0
         a = 0
         na = 0
