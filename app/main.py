@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 
 # import helpers
 from .utils.pkl_helper import save_model, load_model
-from .utils.lof_helper import get_metrics
+from .utils.lof_helper import get_metrics, get_prediction_result, classify_data_points, get_data_point_ids
 
 app = Flask(__name__)
 
@@ -132,13 +132,6 @@ def lof_test():
         normal = pd.DataFrame(data, columns=columns)
         normal = normal.drop(['User'], axis=1)
 
-        # initialize variables to return
-        prediction_result = ''
-        inlier = []
-        outlier = []
-        inlierId = []
-        outlierId = []
-
         # import the existing model
         lof = load_model('LOF.pkl')
         inputs = normal.values[0].reshape(-1, 1)
@@ -147,7 +140,7 @@ def lof_test():
         start = time.time()
 
         # predict
-        prediction = lof.fit_predict(inputs)
+        predictions = lof.fit_predict(inputs)
 
         # update the existing model
         save_model(lof, 'LOF.pkl')
@@ -156,25 +149,13 @@ def lof_test():
         end = time.time()
 
         # attach prediction result
-        if -1 not in prediction:
-            prediction_result = 'normal'
-        else:
-            prediction_result = 'abnormal'
+        prediction_result = get_prediction_result(predictions)
 
         # attach outliers and inliers
-        for i, j in zip(inputs, prediction):
-            if j == -1:
-                outlier.append(float(i[0]))
-            else:
-                inlier.append(float(i[0]))
+        outlier, inlier = classify_data_points(inputs, predictions).values()
         
         # attach corresponding record IDs of outliers and inliers
-        for x, y in zip(columns[1:], prediction):
-            if x != 'User':
-                if y == -1:
-                    outlierId.append(x)
-                else:
-                    inlierId.append(x)
+        outlierId, inlierId = get_data_point_ids(columns, predictions).values()
         
         # return results
         return { "prediction": prediction_result, "inlier": inlier, "outlier": outlier, "inlierId": inlierId, "outlierId": outlierId, "trainingTime": end-start }, 200
