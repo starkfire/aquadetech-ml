@@ -11,20 +11,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, plot_confusion_matrix
 from sklearn.model_selection import train_test_split
 from werkzeug.utils import secure_filename
-import pickle
+
+# import helpers
+from .utils.pkl_helper import save_model, load_model
+from .utils.lof_helper import get_metrics
 
 app = Flask(__name__)
-
-# load an existing model or .pkl file
-def load_model(filename):
-    with open(filename, 'rb') as f:
-        clf = pickle.load(f)
-    return clf
-
-# write an object to a .pkl file
-def save_model(clf, filename):
-    with open(filename, 'wb') as f:
-        pickle.dump(clf, f)
 
 # set verified origin of client
 app.config['TARGET_ORIGIN'] = '*'
@@ -74,34 +66,9 @@ def lof_train_from_file():
                 except:
                     return { "message": "Your dataset contains null or invalid values" }, 400
                 
-                n = 0
-                a = 0
-                na = 0
-                an = 0
-                score = 0
-
-                for i, j in zip(y, predictions):
-                    # get accuracy
-                    if i==j:
-                        score+=1
-                    
-                    # get confusion matrix
-                    if i==j and i=='Normal':
-                        n+=1
-                    elif i==j and i=='Abnormal':
-                        a+=1
-                    elif i!=j and i=='Normal':
-                        na+=1
-                    elif i!=j and i=='Abnormal':
-                        an+=1
-                
-                accuracy = str((score/len(x))*100)
-
-                print('Accuracy: ' + accuracy)
-                print('Classified Normal as Normal: '+str(n))
-                print('Classified Abnormal as Abnormal: '+str(a))
-                print('Classified Normal as Abnormal: '+str(na))
-                print('Classified Abnormal as Normal: '+str(an))
+                # metrics/results
+                metrics = get_metrics(x, y, predictions)
+                accuracy, n, a, an, na = metrics.values()
 
                 return { "accuracy": accuracy, "true_normal": n, "true_abnormal": a, "false_normal": an, "false_abnormal": na }, 200
             except:
@@ -144,34 +111,8 @@ def lof_train():
                 predictions.append('Abnormal')
         
         # metrics/results
-        n = 0
-        a = 0
-        na = 0
-        an = 0
-        score = 0
-
-        for i, j in zip(y, predictions):
-            # get accuracy
-            if i==j:
-                score+=1
-            
-            # get confusion matrix
-            if i==j and i=='Normal':
-                n+=1
-            elif i==j and i=='Abnormal':
-                a+=1
-            elif i!=j and i=='Normal':
-                na+=1
-            elif i!=j and i=='Abnormal':
-                an+=1
-        
-        accuracy = str((score/len(x))*100)
-
-        print('Accuracy: ' + accuracy)
-        print('Classified Normal as Normal: '+str(n))
-        print('Classified Abnormal as Abnormal: '+str(a))
-        print('Classified Normal as Abnormal: '+str(na))
-        print('Classified Abnormal as Normal: '+str(an))
+        metrics = get_metrics(x, y, predictions)
+        accuracy, n, a, an, na = metrics.values()
 
         return { "accuracy": accuracy, "true_normal": n, "true_abnormal": a, "false_normal": an, "false_abnormal": na }, 200
 
