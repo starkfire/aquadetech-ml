@@ -139,8 +139,8 @@ def lof_test():
         inlierId = []
         outlierId = []
 
-        # local outlier factor
-        lof = LocalOutlierFactor()
+        # import the existing model
+        lof = load_model('LOF.pkl')
         inputs = normal.values[0].reshape(-1, 1)
 
         # start timer
@@ -148,6 +148,9 @@ def lof_test():
 
         # predict
         prediction = lof.fit_predict(inputs)
+
+        # update the existing model
+        save_model(lof, 'LOF.pkl')
 
         # stop timer
         end = time.time()
